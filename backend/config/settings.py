@@ -36,6 +36,7 @@ ALLOWED_HOSTS = os.getenv(
 INSTALLED_APPS = [
     'rest_framework',
     'accounts',
+    'core',
 
     'django.contrib.admin',
     'django.contrib.auth',

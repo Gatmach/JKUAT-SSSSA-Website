@@ -60,16 +60,15 @@ class SoftDeleteModel(models.Model):
         null=True,
         blank=True,
     )
-
     def soft_delete(self):
         self.is_deleted = True
         self.deleted_at = timezone.now()
-        self.save(update_fields=["is_deleted", "deleted_at", "updated_at"])
+        self.save()
 
     def restore(self):
         self.is_deleted = False
         self.deleted_at = None
-        self.save(update_fields=["is_deleted", "deleted_at", "updated_at"])
+        self.save()
 
     class Meta:
         abstract = True

@@ -1,7 +1,7 @@
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
 from .models import User
-
+from django.contrib.auth.admin import UserAdmin, GroupAdmin
+from django.contrib.auth.models import Group
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
@@ -51,3 +51,39 @@ class CustomUserAdmin(UserAdmin):
             },
         ),
     )
+    def has_module_permission(self, request):
+        return request.user.is_superuser
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_add_permission(self, request):
+        return request.user.is_superuser
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+# Replace Django's default Group administration.
+admin.site.unregister(Group)
+
+
+@admin.register(Group)
+class CustomGroupAdmin(GroupAdmin):
+
+    def has_module_permission(self, request):
+        return request.user.is_superuser
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_add_permission(self, request):
+        return request.user.is_superuser
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser

@@ -1,8 +1,26 @@
 
 from django.test import TestCase
-
-from .models import BaseModel, ActiveStatusModel, SoftDeleteModel
 from django.conf import settings
+from django.db import connection, models
+
+from .models import (
+    BaseModel,
+    ActiveStatusModel,
+    SoftDeleteModel,
+    AuditModel,
+)
+
+class SoftDeleteTestRecord(SoftDeleteModel):
+    name = models.CharField(max_length=100)
+
+    class Meta:
+        app_label = "core"
+class TimestampedSoftDeleteTestRecord(BaseModel, SoftDeleteModel):
+    name = models.CharField(max_length=100)
+
+    class Meta:
+        app_label = "core"
+
 
 class CoreModelTests(TestCase):
 
@@ -40,3 +58,56 @@ class CoreModelTests(TestCase):
             AuditModel._meta.get_field("updated_by").remote_field.model,
             settings.AUTH_USER_MODEL,
         )
+class SoftDeleteBehaviorTests(TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+
+        with connection.schema_editor() as schema_editor:
+            schema_editor.create_model(SoftDeleteTestRecord)
+            schema_editor.create_model(TimestampedSoftDeleteTestRecord)
+
+    @classmethod
+    def tearDownClass(cls):
+        with connection.schema_editor() as schema_editor:
+            schema_editor.delete_model(SoftDeleteTestRecord)
+            schema_editor.delete_model(TimestampedSoftDeleteTestRecord)
+
+        super().tearDownClass()
+
+    def test_soft_delete_marks_record_as_deleted(self):
+        record = SoftDeleteTestRecord.objects.create(
+            name="Test record"
+        )
+
+        record.soft_delete()
+        record.refresh_from_db()
+
+        self.assertTrue(record.is_deleted)
+        self.assertIsNotNone(record.deleted_at)
+
+    def test_restore_recovers_soft_deleted_record(self):
+        record = SoftDeleteTestRecord.objects.create(
+            name="Test record"
+        )
+
+        record.soft_delete()
+        record.restore()
+        record.refresh_from_db()
+
+        self.assertFalse(record.is_deleted)
+        self.assertIsNone(record.deleted_at)
+
+    def test_soft_delete_updates_timestamp(self):
+        record = TimestampedSoftDeleteTestRecord.objects.create(
+            name="Timestamp test"
+        )
+
+        original_updated_at = record.updated_at
+
+        record.soft_delete()
+        record.refresh_from_db()
+
+        self.assertTrue(record.updated_at >= original_updated_at)
+        self.assertTrue(record.is_deleted)
